@@ -1,2 +1,7 @@
+# Production dependencies
 docker==3.6.0
+
+# Development dependencies
 mypy==0.650
+pytest==4.0.1
+python-dotenv==0.10.0
