@@ -22,6 +22,5 @@ python -m nycdbuddy.cli
 ## Tests
 
 ```
-pytest
-mypy .
+pytest && mypy . && echo "yay everything works"
 ```
