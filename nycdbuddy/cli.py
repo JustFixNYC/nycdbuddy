@@ -18,7 +18,7 @@ import docopt
 import docker
 import random
 
-from . import machine, nycdb_image
+from . import machine, image
 
 
 def hello_world(client: docker.DockerClient, image: str) -> None:
@@ -45,7 +45,7 @@ def main(argv: Optional[List[str]]=None) -> None:
         if args['hello-world']:
             hello_world(client, 'alpine:latest')
         elif args['build-image']:
-            image_id = nycdb_image.build(client)
+            image_id = image.build(client)
             print("Testing image...")
             hello_world(client, image_id)
             print("Image is good!")
