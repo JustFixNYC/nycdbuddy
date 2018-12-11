@@ -7,6 +7,7 @@ Usage:
   bud.py build-image [--name=<name>] [--no-machine]
   bud.py db:start [--name=<name>] [--no-machine]
   bud.py db:stop [--name=<name>] [--no-machine]
+  bud.py db:wipe [--name=<name>] [--no-machine]
   bud.py db:hello-world [--name=<name>] [--no-machine]
   bud.py (-h | --help)
 
@@ -56,6 +57,8 @@ def main(argv: Optional[List[str]]=None) -> None:
             postgres.start(client)
         elif args['db:stop']:
             postgres.stop(client)
+        elif args['db:wipe']:
+            postgres.wipe(client)
         elif args['db:hello-world']:
             postgres.hello_world(client)
 

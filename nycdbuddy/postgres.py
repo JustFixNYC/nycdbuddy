@@ -1,5 +1,6 @@
 from typing import NamedTuple, Dict
 import urllib.parse
+import time
 import docker
 import psycopg2
 
@@ -40,10 +41,30 @@ class ConnectInfo(NamedTuple):
         }
 
 
-def hello_world(client: docker.DockerClient, cinfo: ConnectInfo=ConnectInfo()) -> None:
+def retry_connection(client: docker.DockerClient, cinfo: ConnectInfo, retries=5) -> None:
+    retries_left = retries
+
+    while True:
+        try:
+            get_connection(client, cinfo).close()
+            return
+        except psycopg2.OperationalError as e:
+            if retries_left:
+                # It's possible the database is still starting up.
+                time.sleep(2)
+                retries_left -= 1
+            else:
+                raise e
+
+
+def get_connection(client: docker.DockerClient, cinfo: ConnectInfo):
     cinfo = cinfo.with_docker_host(client)
-    print(f'Connecting to db on "{cinfo.host}"...')
-    with psycopg2.connect(**cinfo.to_psycopg2_kwargs()) as conn:
+    print(f"Connecting to db on '{cinfo.host}'...")
+    return psycopg2.connect(**cinfo.to_psycopg2_kwargs())
+
+
+def hello_world(client: docker.DockerClient, cinfo: ConnectInfo=ConnectInfo()) -> None:
+    with get_connection(client, cinfo) as conn:
         with conn.cursor() as cur:
             cur.execute('SELECT usename FROM pg_user')
             print(f'Connected to db and found a user named "{cur.fetchone()[0]}".')
@@ -82,4 +103,19 @@ def start(
         },
         detach=True
     )
-    print("Done.")
+    retry_connection(client, cinfo)
+    print("Done, db is started and ready for connections.")
+
+
+def wipe(
+    client: docker.DockerClient,
+    cinfo: ConnectInfo=ConnectInfo(),
+    name: str=CONTAINER_NAME,
+    volume_name: str=VOLUME_NAME
+) -> None:
+    stop(client, name)
+    volumes = client.volumes.list(filters={'name': volume_name})
+    if volumes:
+        volume = volumes[0]
+        print(f"Removing volume {volume.name}.")
+        volume.remove()
