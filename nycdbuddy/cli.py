@@ -5,6 +5,9 @@ Usage:
   bud.py machine:rm [--name=<name>]
   bud.py hello-world [--name=<name>] [--no-machine]
   bud.py build-image [--name=<name>] [--no-machine]
+  bud.py start-db [--name=<name>] [--no-machine]
+  bud.py stop-db [--name=<name>] [--no-machine]
+  bud.py hello-db [--name=<name>] [--no-machine]
   bud.py (-h | --help)
 
 Options:
@@ -18,7 +21,7 @@ import docopt
 import docker
 import random
 
-from . import machine, image
+from . import machine, image, postgres
 
 
 def hello_world(client: docker.DockerClient, image: str) -> None:
@@ -49,6 +52,12 @@ def main(argv: Optional[List[str]]=None) -> None:
             print("Testing image...")
             hello_world(client, image_id)
             print("Image is good!")
+        elif args['start-db']:
+            postgres.start(client)
+        elif args['stop-db']:
+            postgres.stop(client)
+        elif args['hello-db']:
+            postgres.hello_world(client)
 
 
 if __name__ == '__main__':
