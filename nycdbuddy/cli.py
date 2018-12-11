@@ -9,6 +9,8 @@ Usage:
   bud.py db:stop
   bud.py db:wipe
   bud.py db:hello-world
+  bud.py populate [--use-test-data]
+  bud.py populate:status
   bud.py (-h | --help)
 
 Options:
@@ -23,20 +25,13 @@ import os
 import sys
 import docopt
 import docker
-import random
 
-from . import machine, image, postgres
+from . import machine, image, postgres, populate, docker_util
 
 
 def hello_world(client: docker.DockerClient, image: str) -> None:
-    cname = f"hello-world-{random.random()}"
-    result = client.containers.run(image, "echo hello world", name=cname)
-
+    result = docker_util.run_and_remove(client, image, "echo hello world")
     print(f"The container says: {result}")
-
-    print("Removing container.")
-
-    client.containers.get(cname).remove()
 
 
 def ensure_name(name: str):
@@ -73,6 +68,10 @@ def main(argv: Optional[List[str]]=None) -> None:
             postgres.wipe(client)
         elif args['db:hello-world']:
             postgres.hello_world(client)
+        elif args['populate']:
+            populate.populate(client, use_test_data=args['--use-test-data'])
+        elif args['populate:status']:
+            populate.status(client)
 
 
 if __name__ == '__main__':

@@ -6,6 +6,8 @@ import docker
 import subprocess
 
 
+TAG_NAME = 'nycdbuddy'
+
 NYCDB_REPO = "https://github.com/aepyornis/nyc-db"
 
 DOCKERFILE = """\
@@ -91,7 +93,7 @@ def build(
     print(f"Building image for {build_args.repo}@{build_args.short_rev}...")
     try:
         image, _ = client.images.build(
-            tag='nycdbuddy',
+            tag=TAG_NAME,
             fileobj=context,
             custom_context=True,
             buildargs=build_args.to_dockerfile_buildargs()
