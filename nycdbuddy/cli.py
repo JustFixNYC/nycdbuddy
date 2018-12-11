@@ -1,23 +1,26 @@
 '''Your NYC-DB buddy.
 
 Usage:
-  bud.py machine:aws-create [--name=<name>]
-  bud.py machine:rm [--name=<name>]
-  bud.py hello-world [--name=<name>] [--no-machine]
-  bud.py build-image [--name=<name>] [--no-machine]
-  bud.py db:start [--name=<name>] [--no-machine]
-  bud.py db:stop [--name=<name>] [--no-machine]
-  bud.py db:wipe [--name=<name>] [--no-machine]
-  bud.py db:hello-world [--name=<name>] [--no-machine]
+  bud.py machine:aws-create
+  bud.py machine:rm
+  bud.py hello-world
+  bud.py build-image
+  bud.py db:start
+  bud.py db:stop
+  bud.py db:wipe
+  bud.py db:hello-world
   bud.py (-h | --help)
 
 Options:
   -h --help       Show this screen.
-  --name=<name>   Docker Machine name to use [default: nycdbuddy].
-  --no-machine    Don't use any Docker Machine.
+
+Environment variables:
+  NYCDB_DOCKER_MACHINE_NAME    The Docker Machine name to use (optional).
 '''
 
 from typing import Optional, List
+import os
+import sys
 import docopt
 import docker
 import random
@@ -36,16 +39,25 @@ def hello_world(client: docker.DockerClient, image: str) -> None:
     client.containers.get(cname).remove()
 
 
+def ensure_name(name: str):
+    if not name:
+        sys.stderr.write("Please set NYCDB_DOCKER_MACHINE_NAME first.\n")
+        sys.exit(1)
+
+
 def main(argv: Optional[List[str]]=None) -> None:
     args = docopt.docopt(__doc__, argv=argv)
-    name: str = args['--name']
-    no_machine: bool = args['--no-machine']
+    name: str = os.environ.get('NYCDB_DOCKER_MACHINE_NAME', '')
+    if name:
+        print(f"Using the Docker Machine '{name}'.")
     if args['machine:aws-create']:
+        ensure_name(name)
         machine.aws_create(name)
     elif args['machine:rm']:
+        ensure_name(name)
         machine.rm(name)
     else:
-        client = docker.client.from_env() if no_machine else machine.get_client(name)
+        client = machine.get_client(name) if name else docker.client.from_env()
         if args['hello-world']:
             hello_world(client, 'alpine:latest')
         elif args['build-image']:

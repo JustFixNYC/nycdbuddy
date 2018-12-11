@@ -24,13 +24,13 @@ def aws_create(name: str):
     # Note that the AWS keys should be defined either in the environment
     # or the AWS credentials file thingy that docker-machine supports.
 
-    print(f"Creating Docker machine '{name}'.")
+    print(f"Creating Docker Machine '{name}'.")
 
     run_docker_machine(['create', name, '--driver=amazonec2'])
 
 
 def rm(name: str):
-    print(f"Removing Docker machine '{name}'.")
+    print(f"Removing Docker Machine '{name}'.")
 
     run_docker_machine(['rm', name])
 
