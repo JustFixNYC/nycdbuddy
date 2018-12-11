@@ -3,6 +3,7 @@
 Usage:
   bud.py machine:aws-create
   bud.py machine:rm
+  bud.py machine:shell
   bud.py hello-world
   bud.py build-image
   bud.py db:start
@@ -51,6 +52,9 @@ def main(argv: Optional[List[str]]=None) -> None:
     elif args['machine:rm']:
         ensure_name(name)
         machine.rm(name)
+    elif args['machine:shell']:
+        ensure_name(name)
+        machine.shell(name)
     else:
         client = machine.get_client(name) if name else docker.client.from_env()
         if args['hello-world']:

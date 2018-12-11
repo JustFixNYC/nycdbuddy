@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-from typing import List
+from typing import List, Dict
 import subprocess
 import docker
 
@@ -46,7 +46,7 @@ def rm(name: str):
     run_docker_machine(['rm', name])
 
 
-def get_client(name: str) -> docker.DockerClient:
+def get_client_env(name: str) -> Dict[str, str]:
     info_bytes = subprocess.check_output(['docker-machine', 'inspect', name])
 
     info = json.loads(info_bytes, encoding="utf-8")
@@ -56,13 +56,31 @@ def get_client(name: str) -> docker.DockerClient:
     ip = info['Driver']['IPAddress']
     ip_url = f"tcp://{ip}:2376"
 
-    env = {
+    return {
         'DOCKER_HOST': ip_url,
         'DOCKER_TLS_VERIFY': '1',
         'DOCKER_CERT_PATH': cert_path,
         'DOCKER_MACHINE_NAME': name
     }
 
+
+def get_client(name: str) -> docker.DockerClient:
+    env = get_client_env(name)
     client = docker.client.from_env(environment=env)
 
     return client
+
+
+def shell(name: str) -> None:
+    env = os.environ.copy()
+    env.update(get_client_env(name))
+    if sys.platform == 'win32':
+        prompt = env.get('PROMPT', '$P$G')
+        env['PROMPT'] = f"({name}) {prompt}"
+        cmd = os.environ.get('COMSPEC', 'cmd.exe')
+    else:
+        ps1 = env.get('PS1', '')
+        ps1 = f"({name}) {ps1}"
+        env['PS1'] = ps1
+        cmd = os.environ.get('SHELL', '/bin/bash')
+    subprocess.call([cmd], env=env)
