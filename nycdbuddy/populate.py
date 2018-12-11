@@ -50,7 +50,7 @@ def status(
         container.remove()
     else:
         print(f"Populate process container {container_name} is {container.status}.")
-        lines = get_logs(container).splitlines()[:-5]
+        lines = get_logs(container).splitlines()[-10:]
         print(f"Here's its latest output:\n")
         print('\n'.join(lines))
 
@@ -58,19 +58,19 @@ def status(
 def populate(
     client: docker.DockerClient,
     use_test_data: bool=False,
-    nycdb_image_tag_name: str=image.TAG_NAME,
+    nycdb_image: str=image.TAG_NAME,
     container_name: str=CONTAINER_NAME,
     postgres_container_name: str=postgres.CONTAINER_NAME,
     cinfo: postgres.ConnectInfo=postgres.ConnectInfo()
 ) -> None:
-    if not use_test_data:
-        raise NotImplementedError()
     if docker_util.container_exists(client, container_name):
         print("A previous populate process already exists.")
         status(client, container_name)
         return
+    if not docker_util.container_exists(client, postgres_container_name):
+        postgres.start(client, cinfo=cinfo, name=postgres_container_name)
     db_container = client.containers.get(postgres_container_name)
-    datasets = get_datasets(client, nycdb_image_tag_name)
+    datasets = get_datasets(client, nycdb_image)
     nycdb_cmd = ' '.join([
         'nycdb',
         '-D', cinfo.db,
@@ -90,7 +90,7 @@ def populate(
     )
 
     container = client.containers.run(
-        nycdb_image_tag_name,
+        nycdb_image,
         ['bash', '-c', command],
         name=container_name,
         network=network.name,

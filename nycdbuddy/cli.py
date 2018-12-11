@@ -69,7 +69,9 @@ def main(argv: Optional[List[str]]=None) -> None:
         elif args['db:hello-world']:
             postgres.hello_world(client)
         elif args['populate']:
-            populate.populate(client, use_test_data=args['--use-test-data'])
+            image_id = image.build(client)
+            populate.populate(
+                client, use_test_data=args['--use-test-data'], nycdb_image=image_id)
         elif args['populate:status']:
             populate.status(client)
 
