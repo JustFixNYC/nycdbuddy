@@ -31,9 +31,35 @@ def get_logs(container) -> str:
     return container.logs().decode('utf-8', errors='ignore')
 
 
+def does_table_exist(cursor, table: str) -> bool:
+    # https://stackoverflow.com/a/1874268
+    query = f"select exists(select * from information_schema.tables where table_name='{table}')"
+    cursor.execute(query)
+    return cursor.fetchone()[0]
+
+
+def show_rowcounts(
+    client: docker.DockerClient,
+    cinfo: postgres.ConnectInfo,
+    nycdb_image: str
+):
+    datasets = get_datasets(client, nycdb_image)
+    with postgres.get_connection(client, cinfo) as conn:
+        for dataset in datasets:
+            with conn.cursor() as cur:
+                if does_table_exist(cur, dataset):
+                    cur.execute(f'SELECT COUNT(*) FROM {dataset}')
+                    count = cur.fetchone()[0]
+                    print(f"Table {dataset} has {count} rows.")
+                else:
+                    print(f"Table {dataset} does not currently exist.")
+
+
 def status(
     client: docker.DockerClient,
     container_name: str=CONTAINER_NAME,
+    nycdb_image: str=image.TAG_NAME,
+    cinfo: postgres.ConnectInfo=postgres.ConnectInfo()
 ) -> None:
     if not docker_util.container_exists(client, container_name):
         print("No populate process currently exists.")
@@ -53,6 +79,8 @@ def status(
         lines = get_logs(container).splitlines()[-10:]
         print(f"Here's its latest output:\n")
         print('\n'.join(lines))
+        print()
+        show_rowcounts(client, cinfo=cinfo, nycdb_image=nycdb_image)
 
 
 def populate(
