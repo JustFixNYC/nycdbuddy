@@ -5,9 +5,9 @@ Usage:
   bud.py machine:rm [--name=<name>]
   bud.py hello-world [--name=<name>] [--no-machine]
   bud.py build-image [--name=<name>] [--no-machine]
-  bud.py start-db [--name=<name>] [--no-machine]
-  bud.py stop-db [--name=<name>] [--no-machine]
-  bud.py hello-db [--name=<name>] [--no-machine]
+  bud.py db:start [--name=<name>] [--no-machine]
+  bud.py db:stop [--name=<name>] [--no-machine]
+  bud.py db:hello-world [--name=<name>] [--no-machine]
   bud.py (-h | --help)
 
 Options:
@@ -52,11 +52,11 @@ def main(argv: Optional[List[str]]=None) -> None:
             print("Testing image...")
             hello_world(client, image_id)
             print("Image is good!")
-        elif args['start-db']:
+        elif args['db:start']:
             postgres.start(client)
-        elif args['stop-db']:
+        elif args['db:stop']:
             postgres.stop(client)
-        elif args['hello-db']:
+        elif args['db:hello-world']:
             postgres.hello_world(client)
 
 
