@@ -18,8 +18,19 @@ def run_docker_machine(args: List[str]):
 
 def aws_create(name: str):
     # https://docs.docker.com/machine/drivers/aws/#environment-variables
-    os.environ.setdefault('AWS_INSTANCE_TYPE', 't2.large')
-    os.environ.setdefault('AWS_SECURITY_GROUP', 'nycdbuddy')
+    os.environ.setdefault('AWS_INSTANCE_TYPE', 't2.xlarge')
+
+    # Note that we originally set the AWS_SECURITY_GROUP here too, but
+    # docker-machine seemed to ignore it, and when we passed it explicitly
+    # as a command-line option, it failed with the following error:
+    #
+    # > Missing instance ID, this is likely due to a failure during machine creation
+    # > Error creating machine: Error in driver during machine creation:
+    # > InvalidGroup.Duplicate: The security group 'nycdbuddy' already exists
+    # > for VPC 'vpc-5844af3c' status code: 400,
+    # > request id: 9c71c004-cb2d-4e64-bd36-179a6d5a3790
+    #
+    # So I guess we won't set the security group, then.
 
     # Note that the AWS keys should be defined either in the environment
     # or the AWS credentials file thingy that docker-machine supports.
