@@ -4,6 +4,7 @@ Usage:
   bud.py machine:aws-create [--name=<name>]
   bud.py machine:rm [--name=<name>]
   bud.py hello-world [--name=<name>] [--no-machine]
+  bud.py build-image [--name=<name>] [--no-machine]
   bud.py (-h | --help)
 
 Options:
@@ -17,12 +18,12 @@ import docopt
 import docker
 import random
 
-from . import machine
+from . import machine, nycdb_image
 
 
-def hello_world(client: docker.DockerClient) -> None:
+def hello_world(client: docker.DockerClient, image: str) -> None:
     cname = f"hello-world-{random.random()}"
-    result = client.containers.run("alpine:latest", "echo hello world", name=cname)
+    result = client.containers.run(image, "echo hello world", name=cname)
 
     print(f"The container says: {result}")
 
@@ -42,7 +43,12 @@ def main(argv: Optional[List[str]]=None) -> None:
     else:
         client = docker.client.from_env() if no_machine else machine.get_client(name)
         if args['hello-world']:
-            hello_world(client)
+            hello_world(client, 'alpine:latest')
+        elif args['build-image']:
+            image_id = nycdb_image.build(client)
+            print("Testing image...")
+            hello_world(client, image_id)
+            print("Image is good!")
 
 
 if __name__ == '__main__':
