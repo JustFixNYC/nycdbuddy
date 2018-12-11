@@ -8,7 +8,7 @@ import subprocess
 
 NYCDB_REPO = "https://github.com/aepyornis/nyc-db"
 
-DOCKERFILE_TEMPLATE = """\
+DOCKERFILE = """\
 FROM python:3.6
 
 RUN apt-get update \\
@@ -18,8 +18,8 @@ RUN apt-get update \\
   && rm -rf /var/lib/apt/lists/* \\
   && rm -rf /src/*.deb
 
-ENV NYCDB_REPO=%(repo)s
-ENV NYCDB_REV=%(rev)s
+ARG NYCDB_REPO
+ARG NYCDB_REV
 
 RUN curl -L ${NYCDB_REPO}/archive/${NYCDB_REV}.zip > nyc-db.zip \\
   && unzip nyc-db.zip \\
@@ -42,6 +42,12 @@ class BuildArgs(NamedTuple):
     @property
     def short_rev(self) -> str:
         return self.rev[:10]
+
+    def to_dockerfile_buildargs(self) -> Dict[str, str]:
+        return {
+            'NYCDB_REPO': self.repo,
+            'NYCDB_REV': self.rev
+        }
 
 
 def build_context_tarfile(dockerfile: str) -> BytesIO:
@@ -81,17 +87,14 @@ def build(
 ) -> str:
     if build_args is None:
         build_args = BuildArgs(repo=NYCDB_REPO, rev=get_latest_rev(NYCDB_REPO))
-    dockerfile = DOCKERFILE_TEMPLATE % {
-        'repo': build_args.repo,
-        'rev': build_args.rev
-    }
-    context = build_context_tarfile(dockerfile)
+    context = build_context_tarfile(DOCKERFILE)
     print(f"Building image for {build_args.repo}@{build_args.short_rev}...")
     try:
         image, _ = client.images.build(
             tag='nycdbuddy',
             fileobj=context,
             custom_context=True,
+            buildargs=build_args.to_dockerfile_buildargs()
         )
     except docker.errors.BuildError as e:
         stderr.write('Something bad happened. Here is the build log:\n\n')
