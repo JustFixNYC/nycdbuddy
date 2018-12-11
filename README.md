@@ -16,7 +16,7 @@ pip install -r requirements.txt
 Then run the CLI:
 
 ```
-python -m nycdbuddy.cli
+python bud.py
 ```
 
 ## Tests
