@@ -1,4 +1,6 @@
-from typing import List
+from typing import List, NamedTuple, Optional, Dict, Any
+import sys
+import yaml
 import docker
 
 from . import image, postgres, docker_util
@@ -8,9 +10,58 @@ CONTAINER_NAME = 'nycdbuddy_populate'
 
 NETWORK_NAME = f'${CONTAINER_NAME}_network'
 
+DATASETS_YML = '/nyc-db/src/nycdb/datasets.yml'
+
 TEST_DATA_DIR = '/nyc-db/src/tests/integration/data'
 
 NYCDB_DATA_DIR = '/var/nycdb'
+
+# Status when a container has already exited.
+CONTAINER_EXITED = 'exited'
+
+
+class TableInfo(NamedTuple):
+    name: str
+    dataset: str
+    rows: Optional[int] = None
+
+    def with_rows(self, cursor) -> 'TableInfo':
+        if does_table_exist(cursor, self.name):
+            cursor.execute(f'SELECT COUNT(*) FROM {self.name}')
+            count = cursor.fetchone()[0]
+            return self._replace(rows=count)
+        else:
+            return self._replace(rows=None)
+
+    def describe(self) -> str:
+        if self.name == self.dataset:
+            name = self.name
+        else:
+            name = f"{self.name} ({self.dataset})"
+        if self.rows is None:
+            return f"Table {name} does not currently exist."
+        return f"Table {name} has {self.rows:,} rows."
+
+
+def get_datasets_yml(
+    client: docker.DockerClient,
+    image: str
+) -> Dict[str, Any]:
+    result = docker_util.run_and_remove(client, image, f'cat {DATASETS_YML}')
+    return yaml.load(result.decode('utf-8'))
+
+
+def get_dataset_tables(yml: Dict[str, Any]) -> List[TableInfo]:
+    result: List[TableInfo] = []
+    for dataset_name, info in yml.items():
+        schema = info['schema']
+        if isinstance(schema, dict):
+            schemas = [schema]
+        else:
+            schemas = schema
+        for schema in schemas:
+            result.append(TableInfo(name=schema['table_name'], dataset=dataset_name))
+    return result
 
 
 def get_datasets(
@@ -43,16 +94,13 @@ def show_rowcounts(
     cinfo: postgres.ConnectInfo,
     nycdb_image: str
 ):
-    datasets = get_datasets(client, nycdb_image)
+    ds = get_datasets_yml(client, nycdb_image)
+    tables = get_dataset_tables(ds)
     with postgres.get_connection(client, cinfo) as conn:
-        for dataset in datasets:
+        for table in tables:
             with conn.cursor() as cur:
-                if does_table_exist(cur, dataset):
-                    cur.execute(f'SELECT COUNT(*) FROM {dataset}')
-                    count = cur.fetchone()[0]
-                    print(f"Table {dataset} has {count} rows.")
-                else:
-                    print(f"Table {dataset} does not currently exist.")
+                table = table.with_rows(cur)
+                print(table.describe())
 
 
 def status(
@@ -65,21 +113,15 @@ def status(
         print("No populate process currently exists.")
         return
     container = client.containers.get(container_name)
-    if container.status == 'exited':
+    if container.status == CONTAINER_EXITED:
         exitinfo = container.wait()
         if exitinfo['Error'] is None and exitinfo['StatusCode'] == 0:
             print("Populate exited successfully!")
         else:
             print("Populate failed:")
             print(get_logs(container))
-        print(f"Removing container {container_name}.")
-        container.remove()
     else:
-        print(f"Populate process container {container_name} is {container.status}.")
-        lines = get_logs(container).splitlines()[-10:]
-        print(f"Here's its latest output:\n")
-        print('\n'.join(lines))
-        print()
+        print(f"Populate process container {container_name} is {container.status}.\n")
         show_rowcounts(client, cinfo=cinfo, nycdb_image=nycdb_image)
 
 
@@ -92,9 +134,12 @@ def populate(
     cinfo: postgres.ConnectInfo=postgres.ConnectInfo()
 ) -> None:
     if docker_util.container_exists(client, container_name):
-        print("A previous populate process already exists.")
-        status(client, container_name)
-        return
+        container = client.containers.get(container_name)
+        if container.status == CONTAINER_EXITED:
+            container.remove()
+        else:
+            print("A populate process is already running.")
+            sys.exit(1)
     if not docker_util.container_exists(client, postgres_container_name):
         postgres.start(client, cinfo=cinfo, name=postgres_container_name)
     db_container = client.containers.get(postgres_container_name)
