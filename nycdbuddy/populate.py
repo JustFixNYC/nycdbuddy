@@ -141,7 +141,7 @@ def ensure_container_is_not_running(client: docker.DockerClient, name: str) -> N
         if container.status == CONTAINER_EXITED:
             container.remove()
         else:
-            print("A populate process is already running.")
+            print("ERROR: A populate process is already running.")
             sys.exit(1)
 
 
