@@ -12,6 +12,8 @@ Usage:
   bud.py db:hello-world
   bud.py populate [--use-test-data]
   bud.py populate:status
+  bud.py populate:rowcounts
+  bud.py populate:stop
   bud.py (-h | --help)
 
 Options:
@@ -78,6 +80,10 @@ def main(argv: Optional[List[str]]=None) -> None:
                 client, use_test_data=args['--use-test-data'], nycdb_image=image_id)
         elif args['populate:status']:
             populate.status(client)
+        elif args['populate:stop']:
+            populate.stop(client)
+        elif args['populate:rowcounts']:
+            populate.show_rowcounts(client)
 
 
 if __name__ == '__main__':

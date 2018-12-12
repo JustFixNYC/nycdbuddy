@@ -91,8 +91,8 @@ def does_table_exist(cursor, table: str) -> bool:
 
 def show_rowcounts(
     client: docker.DockerClient,
-    cinfo: postgres.ConnectInfo,
-    nycdb_image: str
+    cinfo: postgres.ConnectInfo=postgres.ConnectInfo(),
+    nycdb_image: str=image.TAG_NAME
 ):
     ds = get_datasets_yml(client, nycdb_image)
     tables = get_dataset_tables(ds)
@@ -123,6 +123,14 @@ def status(
     else:
         print(f"Populate process container {container_name} is {container.status}.\n")
         show_rowcounts(client, cinfo=cinfo, nycdb_image=nycdb_image)
+
+
+def stop(client: docker.DockerClient, container_name: str=CONTAINER_NAME) -> None:
+    if docker_util.container_exists(client, container_name):
+        container = client.containers.get(container_name)
+        print(f"Killing container {container_name}.")
+        container.kill()
+        container.remove()
 
 
 def populate(
