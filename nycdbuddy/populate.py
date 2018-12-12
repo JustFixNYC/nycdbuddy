@@ -8,6 +8,8 @@ from . import image, postgres, docker_util
 
 CONTAINER_NAME = 'nycdbuddy_populate'
 
+VOLUME_NAME = 'nycdbuddy_nycdb_data'
+
 NETWORK_NAME = f'${CONTAINER_NAME}_network'
 
 DATASETS_YML = '/nyc-db/src/nycdb/datasets.yml'
@@ -133,21 +135,26 @@ def stop(client: docker.DockerClient, container_name: str=CONTAINER_NAME) -> Non
         container.remove()
 
 
-def populate(
-    client: docker.DockerClient,
-    use_test_data: bool=False,
-    nycdb_image: str=image.TAG_NAME,
-    container_name: str=CONTAINER_NAME,
-    postgres_container_name: str=postgres.CONTAINER_NAME,
-    cinfo: postgres.ConnectInfo=postgres.ConnectInfo()
-) -> None:
-    if docker_util.container_exists(client, container_name):
-        container = client.containers.get(container_name)
+def ensure_container_is_not_running(client: docker.DockerClient, name: str) -> None:
+    if docker_util.container_exists(client, name):
+        container = client.containers.get(name)
         if container.status == CONTAINER_EXITED:
             container.remove()
         else:
             print("A populate process is already running.")
             sys.exit(1)
+
+
+def populate(
+    client: docker.DockerClient,
+    use_test_data: bool=False,
+    nycdb_image: str=image.TAG_NAME,
+    container_name: str=CONTAINER_NAME,
+    volume_name: str=VOLUME_NAME,
+    postgres_container_name: str=postgres.CONTAINER_NAME,
+    cinfo: postgres.ConnectInfo=postgres.ConnectInfo()
+) -> None:
+    ensure_container_is_not_running(client, container_name)
     if not docker_util.container_exists(client, postgres_container_name):
         postgres.start(client, cinfo=cinfo, name=postgres_container_name)
     db_container = client.containers.get(postgres_container_name)
@@ -170,12 +177,29 @@ def populate(
         for dataset in datasets
     )
 
+    volumes = {
+        volume_name: {
+            'bind': NYCDB_DATA_DIR,
+            'mode': 'rw'
+        }
+    }
+
     container = client.containers.run(
         nycdb_image,
         ['bash', '-c', command],
         name=container_name,
         network=network.name,
+        volumes=volumes,
         detach=True
     )
 
     print(f"Started populate process in container '{container_name}'.")
+
+
+def wipe(
+    client: docker.DockerClient,
+    name: str=CONTAINER_NAME,
+    volume_name: str=VOLUME_NAME
+) -> None:
+    ensure_container_is_not_running(client, name)
+    docker_util.remove_volume(client, volume_name)

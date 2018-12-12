@@ -17,3 +17,10 @@ def exists(collection, name: str) -> bool:
 
 def container_exists(client: docker.DockerClient, name: str) -> bool:
     return len(client.containers.list(all=True, filters={'name': name})) > 0
+
+
+def remove_volume(client: docker.DockerClient, name: str) -> None:
+    if exists(client.volumes, name):
+        volume = client.volumes.get(name)
+        print(f"Removing volume {volume.name}.")
+        volume.remove()

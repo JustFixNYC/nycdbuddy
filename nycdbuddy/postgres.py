@@ -4,6 +4,8 @@ import time
 import docker
 import psycopg2
 
+from . import docker_util
+
 
 POSTGRES_VERSION = '11'
 
@@ -109,13 +111,8 @@ def start(
 
 def wipe(
     client: docker.DockerClient,
-    cinfo: ConnectInfo=ConnectInfo(),
     name: str=CONTAINER_NAME,
     volume_name: str=VOLUME_NAME
 ) -> None:
     stop(client, name)
-    volumes = client.volumes.list(filters={'name': volume_name})
-    if volumes:
-        volume = volumes[0]
-        print(f"Removing volume {volume.name}.")
-        volume.remove()
+    docker_util.remove_volume(client, volume_name)

@@ -14,6 +14,7 @@ Usage:
   bud.py populate:status
   bud.py populate:rowcounts
   bud.py populate:stop
+  bud.py populate:wipe-nycdb-data
   bud.py (-h | --help)
 
 Options:
@@ -84,6 +85,8 @@ def main(argv: Optional[List[str]]=None) -> None:
             populate.stop(client)
         elif args['populate:rowcounts']:
             populate.show_rowcounts(client)
+        elif args['populate:wipe-nycdb-data']:
+            populate.wipe(client)
 
 
 if __name__ == '__main__':
