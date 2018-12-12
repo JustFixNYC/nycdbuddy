@@ -19,6 +19,7 @@ def run_docker_machine(args: List[str]):
 def aws_create(name: str):
     # https://docs.docker.com/machine/drivers/aws/#environment-variables
     os.environ.setdefault('AWS_INSTANCE_TYPE', 't2.xlarge')
+    os.environ.setdefault('AWS_ROOT_SIZE', '64')
 
     # Note that we originally set the AWS_SECURITY_GROUP here too, but
     # docker-machine seemed to ignore it, and when we passed it explicitly
