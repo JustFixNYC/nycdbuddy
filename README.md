@@ -77,7 +77,17 @@ To check the status of the process, run:
 python bud.py populate:status
 ```
 
+### Accessing your NYC-DB
+
+You can see the connection info for your NYC-DB by running:
+
+```
+python bud.py db:info
+```
+
 ## Tests
+
+To run the test suite and linters, run:
 
 ```
 pytest && mypy . && echo "yay everything works"

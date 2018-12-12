@@ -9,6 +9,7 @@ Usage:
   bud.py db:start
   bud.py db:stop
   bud.py db:wipe
+  bud.py db:info
   bud.py db:hello-world
   bud.py populate [--use-test-data]
   bud.py populate:status
@@ -73,6 +74,8 @@ def main(argv: Optional[List[str]]=None) -> None:
             postgres.stop(client)
         elif args['db:wipe']:
             postgres.wipe(client)
+        elif args['db:info']:
+            postgres.show_info(client)
         elif args['db:hello-world']:
             postgres.hello_world(client)
         elif args['populate']:

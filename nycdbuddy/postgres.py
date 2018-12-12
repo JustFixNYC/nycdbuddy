@@ -116,3 +116,8 @@ def wipe(
 ) -> None:
     stop(client, name)
     docker_util.remove_volume(client, volume_name)
+
+
+def show_info(client: docker.DockerClient, cinfo: ConnectInfo=ConnectInfo()) -> None:
+    cinfo = cinfo.with_docker_host(client)
+    print(cinfo)
